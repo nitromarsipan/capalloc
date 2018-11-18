@@ -1,3 +1,6 @@
+// A tool for aiding allocation strategies for
+// multi layer chip capacitors.
+
 // Tables for package size
 let size = new Object();
 
@@ -18,7 +21,7 @@ size.m = {
   "2520": "1008",
   "2828": "1111",
   "3216": "1206",
-  "3226": "1210",
+  "3225": "1210",
   "3625": "1410",
   "3838": "1515",
   "4516": "1806",
@@ -161,8 +164,10 @@ tdk_parser.parse = function(rm) {
   // Parameter: Nominal capacitance
   let s_cap_m = rm[7];
   let s_cap_e = rm[8];
-  c.capacitance = parseFloat(
-    s_cap_m*Math.pow(10.0, parseInt(s_cap_e) - 12));
+  c.capacitance = parseFloat(s_cap_m) *
+   Math.pow(10.0, parseInt(s_cap_e) - 12);
+  // c.capacitance = parseInt(s_cap_m) *
+    // Math.pow(10.0, parseInt(s_cap_e));
     
   c.capacitance_code = rm[7] + rm[8];
 
@@ -182,12 +187,13 @@ tdk_parser.parse = function(rm) {
   return c;
 };
 
-  
-// Fetch capacitor listing for parsing
+
+// Fetch capacitor listing for parsing.
 let y = new XMLHttpRequest();
 y.open("GET", "tdk_regex.capacitor");
 y.send();
 
+// Parse list and display it when done.
 y.onreadystatechange = function() {
   if (this.readyState == 4 && this.status == 200) {
     s = y.responseText;
@@ -197,7 +203,8 @@ y.onreadystatechange = function() {
     while (match = tdk_parser.regex.exec(s)) {
       capacitors.push(tdk_parser.parse(match));
     }
-    console.log(capacitors);
+    
+    display(capacitors);
   }
 };
 
