@@ -177,6 +177,148 @@ x.onreadystatechange = function() {
 };
 */
 
+// Parser skeleton
+class CapacitorParser {
+  constructor() {
+    this.rs = [];
+    this.f = [];
+  }
+  
+  regex() {
+    let s = "";
+    for (let i in this.rs) {
+      s = s + this.rs[i];
+    }
+    return new RegExp(s, "g");
+  }
+  
+  parse(match) {
+    let c = new Capacitor();
+    c.m = "TDK";
+    c.mpn = match[0];
+    
+    for (let i in this.f) {
+      this.f[i](match(1 + i));
+    }
+  }
+}
+
+// Parser for TDK MLCC MPNs
+let tdk_parser = new CapacitorParser();
+
+// Start matching at word boundary
+tdk_parser.rs.push("\\b");
+
+// Parameter: Series
+tdk_parser.rs.push("(CGA)");
+tdk_parser.f.push(function(s, c) {
+  c.series = s;
+});
+
+// Parameter: Dimensions
+tdk_parser.rs.push("([2-9D])");
+tdk_parser.f.push(function(s, c) {
+  let sizes = {
+    "2": size.i["0402"],
+    "3": size.i["0603"],
+    "4": size.i["0805"],
+    "5": size.i["1206"],
+    "6": size.i["1210"],
+    "7": size.i["1808"],
+    "8": size.i["1812"],
+    "9": size.i["2220"],
+    "D": size.i["3025"],
+  };
+  c.size = sizes[s]
+});
+
+// Parameter: Thickness
+tdk_parser.rs.push("([BCEFHJKLMNP])");
+tdk_parser.f.push(function(s, c) {
+  let thicknesses = {
+    "B": 0.50,
+    "C": 0.60,
+    "E": 0.80,
+    "F": 0.85,
+    "H": 1.15,
+    "J": 1.25,
+    "K": 1.30,
+    "L": 1.60,
+    "M": 2.00,
+    "N": 2.30,
+    "P": 2.50,
+  };
+  c.thickness = thicknesses[s];
+});
+
+// Parameter: Voltage condition for life test
+// (ignored)
+tdk_parser.rs.push("([1234])");
+tdk_parser.f.push(function(s, c) {});
+
+// Parameter: Temperature characteristic
+tdk_parser.rs.push("(C0G|X7R|X7S|X7T|X8R)");
+tdk_parser.f.push(function(s, c) {
+  c.characteristic = s;
+});
+
+// Parameter: Rated voltage
+tdk_parser.rs.push("(0J|1A|1C|1E|1V|1H|2A|2E|2W|2J|3A|3D|3F)");
+tdk_parser.f.push(function(s, c) {
+    let voltages = {
+    "0J":    6.3,
+    "1A":   10.0,
+    "1C":   16.0,
+    "1E":   25.0,
+    "1V":   35.0,
+    "1H":   50.0,
+    "2A":  100.0,
+    "2E":  250.0,
+    "2W":  450.0,
+    "2J":  630.0,
+    "3A": 1000.0,
+    "3D": 2000.0,
+    "3F": 3000.0,
+  };
+  c.voltage = voltages[s];
+});
+
+// Parameter: Nominal capacitance
+tdk_parser.rs.push("([0-9]{3})");
+tdk_parser.f.push(function(s, c) {
+  let s_cap_m = s.slice(0, 2);
+  let s_cap_e = s.slice(2, 3);
+  c.capacitance = parseFloat(
+    s_cap_m*Math.pow(10.0, parseInt(s_cap_e) - 12));
+});
+
+// Parameter: Capacitance tolerance
+tdk_parser.rs.push("(?:J|K|M)");
+
+// Parameter: Thickness
+// In this MPN thickness is defined twice -
+// check if they agree.
+tdk_parser.rs.push("([0-9]{3})");
+tdk_parser.f.push(function(s, c) {
+  let thickness_2 = parseInt(s)/100;
+  if (c.thickness !== thickness_2) {
+    throw new Error("Mismatching thicknesses.");
+  }
+});
+
+// Parameter: Packaging style
+tdk_parser.rs.push("(?:A|B|K|L)");
+
+// Parameter: Special reserved code
+tdk_parser.rs.push("(E)");
+tdk_parser.f.push(function(s, c) {
+  if (s === "E") {
+    c.flexterm = "Soft termination";
+  } else {
+    throw new Error("Unknown special code \"" + s + "\".");
+  }
+});
+  
 // Fetch capacitor listing for regex parsing
 let y = new XMLHttpRequest();
 y.open("GET", "tdk_regex.capacitor");
@@ -186,12 +328,14 @@ y.send();
 y.onreadystatechange = function() {
   if (this.readyState == 4 && this.status == 200) {
     s = y.responseText;
-    mpn_r = new RegExp(
-      "CGA[2-9D][BCEFHJKLMNP][1234](?:C0G|X7R|X7S|X7T|X8R)" +
-      "(?:0J|1A|1C|1E|1V|1H|2A|2E|2W|2J|3A|3D|3F)" +
-      "[0-9]{3}(?:J|K|M)[0-9]{3}(?:A|B|K|L)E");
-    match = mpn_r.exec(s);
-    console.log(match);
+    mpn_r = tdk_parser.regex();
+
+    let match;
+    let matches = [];
+    while (match = mpn_r.exec(s)) {
+      matches.push(match);
+    }
+    console.log(matches);
     
     /*
     let mmpns = [];
