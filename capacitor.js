@@ -157,6 +157,7 @@ function parse_c_tdk(mpn) {
   return c;
 }
 
+/*
 // Fetch capacitor listing
 let x = new XMLHttpRequest();
 x.open("GET", "tdk.capacitor");
@@ -172,6 +173,34 @@ x.onreadystatechange = function() {
     }
     
     parse_mmpns(mmpns);
+  }
+};
+*/
+
+// Fetch capacitor listing for regex parsing
+let y = new XMLHttpRequest();
+y.open("GET", "tdk_regex.capacitor");
+y.send();
+
+// CGA4C4C0G2W101J060AE
+y.onreadystatechange = function() {
+  if (this.readyState == 4 && this.status == 200) {
+    s = y.responseText;
+    mpn_r = new RegExp(
+      "CGA[2-9D][BCEFHJKLMNP][1234](?:C0G|X7R|X7S|X7T|X8R)" +
+      "(?:0J|1A|1C|1E|1V|1H|2A|2E|2W|2J|3A|3D|3F)" +
+      "[0-9]{3}(?:J|K|M)[0-9]{3}(?:A|B|K|L)E");
+    match = mpn_r.exec(s);
+    console.log(match);
+    
+    /*
+    let mmpns = [];
+    for (let i in lines) {
+      mmpns.push(lines[i]);
+    }
+    */
+    
+    //parse_mmpns(mmpns);
   }
 };
 
