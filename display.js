@@ -142,6 +142,7 @@ function printCapCode(code) {
   return n.toFixed(1) + " " + prefix + "F";
 }
 
+let axes = [];
 function display(cs) {
   find_ranges(cs);
   
@@ -155,21 +156,34 @@ function display(cs) {
   }
   
   // Setup axes
-  let axes = [];
   axes.push(new Axis(
     voltages,
     function(i) {return i.voltage;},
-    function(i) {return this.values[i] + " V"}));
+    function(i) {return this.values[i] + " V";}));
   axes.push(new Axis(
     capCodes,
     function(i) {return i.capCode;},
-    function(i) {return printCapCode(this.values[i])}));
+    function(i) {return printCapCode(this.values[i]);}));
+  /*
+  axes.push(new Axis(
+    sizes,
+    function(i) {return i.size;},
+    function(i) {return this.values[i];}));
+  axes.push(new Axis(
+    characteristics,
+    function(i) {return i.characteristic;},
+    function(i) {return this.values[i];}));
+  */
   
   // Create table cells
   let cells = [];
   for (let i = 0; i < axes[0].values.length; i++) {
     for (let j = 0; j < axes[1].values.length; j++) {
-      cells.push(new Cell(axes, [i, j]));
+      //for (let k = 0; j < axes[2].values.length; k++) {
+        //for (let l = 0; j < axes[3].values.length; l++) {
+          cells.push(new Cell(axes, [i, j]));
+        //}
+      //}
     }
   }
   
