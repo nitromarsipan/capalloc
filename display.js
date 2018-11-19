@@ -145,7 +145,7 @@ function printCapCode(code) {
 function display(cs) {
   find_ranges(cs);
   
-  if (false) {
+  if (true) {
     console.log(capacitances);
     console.log(capCodes);
     console.log(voltages);
@@ -184,13 +184,13 @@ function display(cs) {
   let grid = document.createElement("grid_div");
   grid.style.display = "grid";
   grid.style.gridTemplateColumns =
-    "repeat(" + (1 + axes[0].values.length) + ", 85px)";
+    "repeat(" + (1 + axes[0].values.length) + ", 110px)";
   grid.style.gridGap = "0px";
   grid.style.gridAutoFlow = "column dense";
   
   // Corner cell
   let d = document.createElement("div");
-  d.className = "cell";
+  d.className = "cell col_header row_header";
   d.style.gridRow = "1/2";
   d.style.gridColumn = "1/2";
   grid.appendChild(d);
@@ -229,8 +229,8 @@ function display(cs) {
       let item = cells[i].items[j];
       let p = document.createElement("p");
       let s = item.mpn + " " +
-        printCapCode(item.capCode) + " " +
-        item.voltage + " V";
+        item.size + " " +
+        item.characteristic;
       p.innerHTML = s;
       d.appendChild(p);
     }

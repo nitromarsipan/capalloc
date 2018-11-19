@@ -11,8 +11,13 @@ div.cell {
   font-size: 6px;
 }
 
-div.cell.col_header,
-div.cell.row_header {
+div.cell.col_header.row_header {
+  background-color: inherit;
+  border-color: white;
+}
+
+div.cell.col_header:not(.row_header),
+div.cell.row_header:not(.col_header) {
   font-size: 20px;
   background-color: lightblue;
 }
