@@ -169,7 +169,7 @@ tdk_parser.parse = function(rm) {
   // c.capacitance = parseInt(s_cap_m) *
     // Math.pow(10.0, parseInt(s_cap_e));
     
-  c.capacitance_code = rm[7] + rm[8];
+  c.capCode = rm[7] + rm[8];
 
   // Parameter: Capacitance tolerance
   // (ignore) rm[9]

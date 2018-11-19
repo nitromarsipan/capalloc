@@ -37,7 +37,7 @@ function insert_sorted(value, list, lt, eq) {
 
 // Lists of values present in the components
 capacitances = [];
-capacitance_codes = [];
+capCodes = [];
 voltages = [];
 sizes = [];
 characteristics = [];
@@ -55,8 +55,8 @@ function find_ranges(cs) {
       function(a, b) {return (a == b);});
     
     insert_sorted(
-      c.capacitance_code,
-      capacitance_codes,
+      c.capCode,
+      capCodes,
       cc_lt,
       function(a, b) {return (a == b);});
     
@@ -147,7 +147,7 @@ function display(cs) {
   
   if (false) {
     console.log(capacitances);
-    console.log(capacitance_codes);
+    console.log(capCodes);
     console.log(voltages);
     console.log(sizes);
     console.log(characteristics);
@@ -161,8 +161,8 @@ function display(cs) {
     function(i) {return i.voltage;},
     function(i) {return this.values[i] + " V"}));
   axes.push(new Axis(
-    capacitance_codes,
-    function(i) {return i.capacitance_code;},
+    capCodes,
+    function(i) {return i.capCode;},
     function(i) {return printCapCode(this.values[i])}));
   
   // Create table cells
@@ -186,7 +186,7 @@ function display(cs) {
   grid.style.gridTemplateColumns =
     "repeat(" + (1 + axes[0].values.length) + ", 85px)";
   grid.style.gridGap = "0px";
-  grid.style.gridAutoFlow = "dense";
+  grid.style.gridAutoFlow = "column dense";
   
   // Corner cell
   let d = document.createElement("div");
@@ -228,7 +228,9 @@ function display(cs) {
     for (let j in cells[i].items) {
       let item = cells[i].items[j];
       let p = document.createElement("p");
-      let s = item.mpn;
+      let s = item.mpn + " " +
+        printCapCode(item.capCode) + " " +
+        item.voltage + " V";
       p.innerHTML = s;
       d.appendChild(p);
     }
