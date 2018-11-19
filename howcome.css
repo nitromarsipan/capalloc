@@ -1,0 +1,26 @@
+div.cell {
+  margin: 1px;
+  padding: 1px;
+  background-color: #dddddd;
+  border: 1px;
+  border-style: solid;
+  border-color: #cccccc;
+}
+
+div.cell {
+  font-size: 6px;
+}
+
+div.cell.col_header,
+div.cell.row_header {
+  font-size: 20px;
+  background-color: lightblue;
+}
+
+div.cell.col_header {
+  text-align: center;
+}
+
+div.cell.row_header {
+  text-align: right;
+}
