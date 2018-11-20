@@ -175,7 +175,7 @@ function charColor(char, border) {
   let hue = 10;
   let sat = 70;
   let lig = 70;
-  if (char === "C0G") {
+  if (char === "C0G" || char === "NP0") {
     hue = 10;
     sat = 0;
     lig = 100;
@@ -192,7 +192,7 @@ function charColor(char, border) {
 function display(cs) {
   find_ranges(cs);
   
-  if (true) {
+  if (false) {
     console.log(capacitances);
     console.log(capCodes);
     console.log(voltages);
@@ -303,23 +303,31 @@ function display(cs) {
       
       // Display item package size
       sizeD = document.createElement("div");
-      sizeD.className = "size";
+      sizeD.className = "item_param";
       sizeD.innerHTML = item.size;
-      sizeD.style.color = "#111111";
       sizeD.style.backgroundColor = sizeColor(item.size, false);
       sizeD.style.borderColor = sizeColor(item.size, true);
       itemD.appendChild(sizeD);
       
       // Display item material characteristic code
       charD = document.createElement("div");
-      charD.className = "char";
+      charD.className = "item_param";
       charD.innerHTML = item.characteristic;
-      charD.style.color = "#111111";
       charD.style.backgroundColor =
         charColor(item.characteristic, false);
       charD.style.borderColor =
         charColor(item.characteristic, true);
       itemD.appendChild(charD);
+      
+      // Display flex termination
+      if (item.flexterm != undefined) {
+        flexD = document.createElement("div");
+        flexD.className = "item_param";
+        flexD.innerHTML = "flex";
+        flexD.style.backgroundColor = "hsl(90, 70%, 70%)";
+        flexD.style.borderColor = "hsl(90, 60%, 60%)";
+        itemD.appendChild(flexD);
+      }
       
       let span = document.createElement("span");
       span.className = "hoverinfotext";

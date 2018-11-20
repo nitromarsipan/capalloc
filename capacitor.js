@@ -60,7 +60,7 @@ class CapacitorParser {
 }
 
 // Parser for TDK MLCC MPNs
-let tdk_parser = new CapacitorParser();
+let tdkParser = new CapacitorParser();
 
 // Group index: 11123455566778911111
 //              00000000000000000012
@@ -76,7 +76,7 @@ let tdk_parser = new CapacitorParser();
 // thickness                   ^^^|| 2.30 mm
 // packaging                      ^| 330 mm reel, 12 mm pitch
 // special reserved code           ^ Soft termination
-tdk_parser.regex = new RegExp(
+tdkParser.regex = new RegExp(
   "\\b" +
   "(CGA)" +
   "([2-9D])" +
@@ -92,7 +92,7 @@ tdk_parser.regex = new RegExp(
   "(E)",
   "g");
 
-tdk_parser.parse = function(rm) {
+tdkParser.parse = function(rm) {
   let c = new Capacitor();
   c.m = "TDK";
   
@@ -190,25 +190,211 @@ tdk_parser.parse = function(rm) {
 };
 
 
-// Fetch capacitor listing for parsing.
-let y = new XMLHttpRequest();
-y.open("GET", "tdk_regex.capacitor");
-y.send();
+// Parser for Samsung MLCC MPNs
+let samsungParser = new CapacitorParser();
 
-// Parse list and display it when done.
-y.onreadystatechange = function() {
-  if (this.readyState == 4 && this.status == 200) {
-    s = y.responseText;
+// Group index: 112234456789111
+//              000000000000012
+// Example mpn: CL31B106KOHZFNE
+// series       ^^| ||  ||||||| CL
+// size           ^^||  ||||||| EIA 1206 (3216)
+// temp char.       ^|  ||||||| X7R
+// capacitance       ^^^||||||| 10 µF
+// tolerance            ^|||||| ±10 %
+// rated voltage         ^||||| 16 V
+// thickness              ^|||| 1.6 mm
+// termination             ^||| Ni, Soft termination, Sn 100 %
+// product code             ^|| For POWER application
+// special                   ^| Reserved code
+// packaging                  ^ Embossed, 7" reel
+samsungParser.regex = new RegExp(
+  "\\b" +
+  "(CL)" +
+  "(03|05|10|21|31|32|43|55)" +
+  "([ABCFLPRSTUXY])" +
+  "([0-9][0-9R])" +
+  "([0-9])" +
+  "([ABCDFGJKMZ])" +
+  "([ABCDEGHIJKLOPQR])" +
+  "([3568ACFHIJLQVYU])" +
+  "([ANGZSY])" +
+  "([ABCFLNPW4N])" +
+  "([N6JW])" +
+  "([BCDEFLOPSG])",
+  "g");
 
-    let match;
-    let capacitors = [];
-    while (match = tdk_parser.regex.exec(s)) {
-      capacitors.push(tdk_parser.parse(match));
-    }
-    
-    display(capacitors);
+samsungParser.parse = function(rm) {
+  let c = new Capacitor();
+  c.m = "Samsung";
+  
+  c.mpn = rm[0];
+  
+  // Parameter: Series
+  c.series = rm[1];
+  
+  // Parameter: Size
+  let sizes = {
+    "03": size.i["0201"],
+    "05": size.i["0402"],
+    "10": size.i["0603"],
+    "21": size.i["0805"],
+    "31": size.i["1206"],
+    "32": size.i["1210"],
+    "43": size.i["1812"],
+    "55": size.i["2220"],
+  };
+  c.size = sizes[rm[2]];
+
+  // Parameter: Temperature characteristic
+  let characteristics = {
+    "C": "C0G",
+    "P": "P2H",
+    "R": "R2H",
+    "S": "S2H",
+    "T": "T2H",
+    "U": "U2J",
+    "L": "S2L",
+    "A": "X5R",
+    "B": "X7R",
+    "y": "X7S",
+    "X": "X6S",
+    "F": "Y5V",
+  };
+  c.characteristic = characteristics[rm[3]];
+  
+  // Parameter: Nominal capacitance
+  let s_cap_m = rm[4];
+  let s_cap_e = rm[5];
+  if (s_cap_m.slice(1,2) == "R") {
+    throw new Error("R not implemented.");
   }
+  c.capacitance = parseFloat(s_cap_m) *
+   Math.pow(10.0, parseInt(s_cap_e) - 12);
+    
+  c.capCode = rm[4] + rm[5];
+
+  // Parameter: Capacitance tolerance
+  // (ignore) rm[6]
+  // K: ±10 %
+
+  // Parameter: Rated voltage
+    let voltages = {
+    "R":    4.0,
+    "Q":    6.3,
+    "P":   10.0,
+    "O":   16.0,
+    "A":   25.0,
+    "L":   35.0,
+    "B":   50.0,
+    "C":  100.0,
+    "D":  200.0,
+    "E":  250.0,
+    "G":  500.0,
+    "H":  630.0,
+    "I": 1000.0,
+    "J": 2000.0,
+    "K": 3000.0,
+  };
+  c.voltage = voltages[rm[7]];
+  
+  // Parameter: Thickness
+    let thicknesses = {
+    "3": 0.30,
+    "5": 0.50,
+    "6": 0.60,
+    "8": 0.80,
+    "A": 0.65,
+    "C": 0.85,
+    "F": 1.25,
+    "Q": 1.25,
+    "Y": 1.25,
+    "H": 1.60,
+    "U": 1.80,
+    "I": 2.00,
+    "J": 2.50,
+    "V": 2.50,
+    "L": 3.20,
+  };
+  c.thickness = thicknesses[rm[8]];
+
+  // Parameter: Product and plating method
+  // Z:
+  // S: Ni, Soft termination, Sn 100 %
+  if (rm[9] === "Z" || rm[9] === "S") {
+    c.flexterm = "Soft termination";
+  } else if (rm[9] === "Y") {
+    c.flexterm = "Cu/Ag-Epoxy";
+  }
+  
+  // Parameter: Product code (Samsung control code)
+  // (ignore) rm[10]
+  // N: Normal
+  // 4: Industrial (Network, power, etc)
+  // W: Industrial (Network, power, etc)
+  // F: Product for POWER application
+  
+  // Parameter: Reserved code
+  // (ignore) rm[11]
+  // N: Reserved code
+  // 6: Higher bending strength
+  // J: Higher bending strength
+  // W: Industrial (Network, power, etc)
+  
+  // Parameter: Packaging type
+  // (ignore) rm[12]
+  // E: Embossed type, 7" reel
+  // G: Embossed type, 7" reel
+  // C: Cardboard type, 7" reel
+  
+  return c;
 };
+
+
+let capacitors = [];
+
+// Fetch tdk capacitor listing for parsing.
+function fetchTDK() {
+  let f = new XMLHttpRequest();
+  f.open("GET", "tdk_flex.capacitor");
+  f.send();
+
+  // Parse list and display it when done.
+  f.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      s = f.responseText;
+
+      let match;
+      while (match = tdkParser.regex.exec(s)) {
+        capacitors.push(tdkParser.parse(match));
+      }
+      
+      fetchSamsung();
+    }
+  };
+}
+
+// Fetch Samsung capacitor listing for parsing.
+function fetchSamsung() {
+  let f = new XMLHttpRequest();
+  f.open("GET", "samsung_flex.capacitor");
+  f.send();
+
+  // Parse list and display it when done.
+  f.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      s = f.responseText;
+
+      let match;
+      while (match = samsungParser.regex.exec(s)) {
+        capacitors.push(samsungParser.parse(match));
+      }
+      
+      display(capacitors);
+    }
+  };
+}
+
+fetchTDK();
 
 // To run:
 // run python -m http.server 8000 in the root directory,

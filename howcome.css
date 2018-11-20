@@ -45,11 +45,12 @@ div.item {
   display: inline-block;
 }
 
-div.size,
-div.char {
+div.item_param {
   padding: 1px;
   border: 1px;
   border-style: solid;
+  color: #111111;
+  text-align: center;
 }
 
 .hoverinfo {
