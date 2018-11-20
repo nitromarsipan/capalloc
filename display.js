@@ -142,7 +142,51 @@ function printCapCode(code) {
   return n.toFixed(1) + " " + prefix + "F";
 }
 
-let axes = [];
+// Return HTML colour code to indicate component size
+function sizeColor(size, border) {
+  let a = function(size) {
+    return size.slice(0,2)*size.slice(2,4);
+  }
+  
+  let min = a("1005");
+  let max = a("7563");
+  let s = a(size);
+  // Area of item relative to area scale
+  let aRatio = (s - min)/(max - min);
+  let lRatio = Math.sqrt(aRatio); // rel to length scale
+  let w = Math.pow(lRatio, 1);
+  
+  let hue = Math.floor(360*w);
+  let sat = "70%";
+  let lig = "70%";
+  
+  if (border) {
+    sat = "60%";
+    lig = "60%";
+  }
+
+  return "hsl(" + hue + ", " + sat + ", " + lig + ")";
+}
+
+// Return HTML colour code to indicate component characteristic
+function charColor(char, border) {
+  let hue = 10;
+  let sat = 70;
+  let lig = 70;
+  if (char === "C0G") {
+    hue = 10;
+    sat = 0;
+    lig = 100;
+  }
+  
+  if (border) {
+    sat = sat - 10;
+    lig = lig - 10;
+  }
+
+  return "hsl(" + hue + ", " + sat + "%, " + lig + "%)";
+}
+
 function display(cs) {
   find_ranges(cs);
   
@@ -156,6 +200,7 @@ function display(cs) {
   }
   
   // Setup axes
+  let axes = [];
   axes.push(new Axis(
     voltages,
     function(i) {return i.voltage;},
@@ -241,12 +286,42 @@ function display(cs) {
     
     for (let j in cells[i].items) {
       let item = cells[i].items[j];
-      let p = document.createElement("p");
-      let s = item.mpn + " " +
-        item.size + " " +
-        item.characteristic;
-      p.innerHTML = s;
-      d.appendChild(p);
+      let a = document.createElement("a");
+      a.href = "https://octopart.com/search?q=" +
+        item.mpn +
+        "&start=0";
+      a.rel = "external noreferrer";
+        
+      let itemD = document.createElement("div");
+      itemD.className = "item hoverinfo";
+      
+      // Display item package size
+      sizeD = document.createElement("div");
+      sizeD.className = "size";
+      sizeD.innerHTML = item.size;
+      sizeD.style.color = "#111111";
+      sizeD.style.backgroundColor = sizeColor(item.size, false);
+      sizeD.style.borderColor = sizeColor(item.size, true);
+      itemD.appendChild(sizeD);
+      
+      // Display item material characteristic code
+      charD = document.createElement("div");
+      charD.className = "char";
+      charD.innerHTML = item.characteristic;
+      charD.style.color = "#111111";
+      charD.style.backgroundColor =
+        charColor(item.characteristic, false);
+      charD.style.borderColor =
+        charColor(item.characteristic, true);
+      itemD.appendChild(charD);
+      
+      let span = document.createElement("span");
+      span.className = "hoverinfotext";
+      span.innerHTML = item.m + " " + item.mpn;
+      itemD.appendChild(span);
+      
+      a.appendChild(itemD);
+      d.appendChild(a);
     }
     grid.appendChild(d);
     document.body.appendChild(grid);

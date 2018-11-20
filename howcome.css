@@ -19,7 +19,8 @@ div.cell.col_header.row_header {
 div.cell.col_header:not(.row_header),
 div.cell.row_header:not(.col_header) {
   font-size: 20px;
-  background-color: lightblue;
+  background-color: #add8e6;
+  border-color: #a0d0f6;
 }
 
 div.cell.col_header {
@@ -28,4 +29,50 @@ div.cell.col_header {
 
 div.cell.row_header {
   text-align: right;
+}
+
+div.item {
+  margin: 1px;
+  padding: 0px;
+  background-color: #cccccc;
+  border: 0px;
+  border-style: solid;
+  border-color: #bbbbbb;
+  display: inline-block;
+}
+
+div.size,
+div.char {
+  padding: 1px;
+  border: 1px;
+  border-style: solid;
+}
+
+.hoverinfo {
+    position: relative;
+    display: inline-block;
+    border-bottom: 1px dotted black;
+}
+
+.hoverinfo .hoverinfotext {
+    visibility: hidden;
+    width: 240px;
+    background-color: #111111;
+    color: #eeeeee;
+    text-align: center;
+    border-radius: 4px;
+    padding: 5px 0;
+    font-size: 16px;
+    
+    /* Position the tooltip */
+    position: absolute;
+    z-index: 1;
+    bottom: 100%;
+    left: 50%;
+    margin-left: -120px;
+    margin-bottom: 10px;
+}
+
+.hoverinfo:hover .hoverinfotext {
+    visibility: visible;
 }
