@@ -13,9 +13,11 @@ div.cell {
   font-size: 6px;
 }
 
-div.cell.col_header.row_header {
+div.cell.corner_header {
+  font-size: 20px;
   background-color: inherit;
   border-color: white;
+  text-align: center;
 }
 
 div.cell.col_header:not(.row_header),

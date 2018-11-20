@@ -251,10 +251,14 @@ function display(cs) {
   
   // Corner cell
   let d = document.createElement("div");
-  d.className = "cell col_header row_header";
+  d.className = "cell corner_header";
   d.style.gridRow = "1/2";
   d.style.gridColumn = "1/2";
   grid.appendChild(d);
+  
+  let p = document.createElement("p");
+  p.innerHTML = "Capalloc"
+  d.appendChild(p);
   
   // Column headers
   for (let i in axes[0].values) {
