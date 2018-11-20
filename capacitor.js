@@ -1,6 +1,8 @@
 // A tool for aiding allocation strategies for
 // multi layer chip capacitors.
 
+// Copyright 2018 Magnus Sollien Sjursen <m@didakt.no>
+
 // Tables for package size
 let size = new Object();
 

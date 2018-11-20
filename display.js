@@ -1,3 +1,5 @@
+// Copyright 2018 Magnus Sollien Sjursen <m@didakt.no>
+
 // a and b are 3 digit capacitance codes
 // 104 means 10*10^4 pF
 // Returns whether a is smaller than b.
