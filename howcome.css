@@ -29,10 +29,16 @@ div.cell.row_header:not(.col_header) {
 
 div.cell.col_header {
   text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 div.cell.row_header {
   text-align: right;
+  position: sticky;
+  left: 0;
+  z-index: 10;
 }
 
 div.item {
