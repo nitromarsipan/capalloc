@@ -406,6 +406,13 @@ function display(cs) {
       tempText.innerHTML = s;
       hover.appendChild(tempText);
       
+      if (item.pack !== undefined) {
+        let packText = document.createElement("p");
+        s = item.pack;
+        packText.innerHTML = s;
+        hover.appendChild(packText);
+      }
+      
       if (item.flexterm !== undefined) {
         let flexText = document.createElement("p");
         s = item.flexterm;

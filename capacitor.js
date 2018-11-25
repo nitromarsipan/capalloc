@@ -61,7 +61,6 @@ class CapacitorParser {
 
 // Parser for TDK MLCC MPNs
 let tdkParser = new CapacitorParser();
-
 // Group index: 11123455566778911111
 //              00000000000000000012
 // Example mpn: CGADN3X7R1E476M230LE
@@ -77,7 +76,6 @@ let tdkParser = new CapacitorParser();
 // packaging                      ^| 330 mm reel, 12 mm pitch
 // special reserved code           ^ Soft termination
 tdkParser.regex = new RegExp(
-  "\\b" +
   "(CGA)" +
   "([2-9D])" +
   "([BCEFHJKLMNP])" +
@@ -243,7 +241,6 @@ class TempChar {
 
 // Parser for Samsung MLCC MPNs
 let samsungParser = new CapacitorParser();
-
 // Group index: 112234456789111
 //              000000000000012
 // Example mpn: CL31B106KOHZFNE
@@ -259,7 +256,6 @@ let samsungParser = new CapacitorParser();
 // special                   ^| Reserved code
 // packaging                  ^ Embossed, 7" reel
 samsungParser.regex = new RegExp(
-  "\\b" +
   "(CL)" +
   "(03|05|10|21|31|32|43|55)" +
   "([ABCFLPRSTUXY])" +
@@ -413,6 +409,160 @@ samsungParser.parse = function(rm) {
   return c;
 };
 
+// Parser for Kemet MLCC MPNs
+let kemetParser = new CapacitorParser();
+// Group index: 1222234456789111
+//              0000000000000011
+// Example mpn: C1206C106M4RACTU
+// type         ^|   ||  ||||||
+// size          ^^^^||  ||||||
+// series            ^|  ||||||
+// capacitance        ^^^||||||
+// tolerance             ^|||||
+// volage                 ^||||
+// temperature             ^|||
+// failure rate             ^||
+// termination               ^|
+// packaging                  ^^
+kemetParser.regex = new RegExp(
+  "(C)" +
+  "([0-9]{4})" +
+  "(C)" +
+  "([0-9][0-9R])" +
+  "([0-9])" +
+  "([BCDFGJKMZ])" +
+  "([98436512A])" +
+  "([GJPRUV])" +
+  "([A])" +
+  "([C])" +
+  "(|TU|7411|7210|TM|7040|7013|7025|7215|7081|7082|" +
+  "7800|7805|7810|7867|9028|9239|3325)" +
+  "g");
+
+kemetParser.regex = new RegExp(
+  "(C)(0201)(C)(10)(1)(J)(4)(G)(A)(C)(7867)", "g");
+
+kemetParser.parse = function(rm) {
+  let c = new Capacitor();
+  c.m = "Kemet";
+  
+  c.mpn = rm[0];
+  
+  // Parameter: Type
+  c.type = rm[1];
+  
+  // Parameter: Size
+  c.size = size.i[rm[2]];
+  if (c.size === undefined) {
+    console.log(rm);
+    console.log(rm[2]);
+    throw new Error("Undefined size code.");
+  }
+  
+  // Parameter: Series
+  c.series = rm[3];
+  
+  // Parameter: Nominal capacitance
+  let s_cap_m = rm[4];
+  let s_cap_e = rm[5];
+  if (s_cap_m.slice(1,2) == "R") {
+    throw new Error("R not implemented.");
+  }
+  c.capacitance = parseFloat(s_cap_m) *
+   Math.pow(10.0, parseInt(s_cap_e) - 12);
+  
+  c.capCode = rm[4] + rm[5];
+
+  // Parameter: Capacitance tolerance
+  let tols = {
+    "F": [-1, 1],
+    "G": [-2, 2],
+    "J": [-5, 5],
+    "K": [-10, 10],
+    "M": [-20, 20],
+    "Z": [-20, +80],
+  };
+  c.tol = tols[rm[6]];
+  if (c.tol === undefined) {
+    console.log(rm);
+    console.log(rm[6]);
+    throw new Error("undefined temperature tolerance");
+  }
+  
+  // Parameter: Rated voltage
+  let voltages = {
+    "9": 6.3,
+    "8": 10,
+    "4": 16,
+    "3": 25,
+    "6": 35,
+    "5": 50,
+    "1": 100,
+    "2": 200,
+    "A": 250,
+  }
+  c.voltage = voltages[rm[7]];
+  if (c.voltage === undefined) {
+    console.log(rm);
+    console.log(rm[7]);
+    throw new Error("undefined voltage");
+  }
+  
+  // Parameter: Temperature characteristic
+  let temps = {
+    "G": "C0G",
+    "J": "U2J",
+    "P": "X5R",
+    "R": "X7R",
+    "U": "Z5U",
+    "V": "Y5V",
+  };
+  let tempchar = temps[rm[8]];
+  if (tempchar == undefined) {
+    console.log(rm);
+    console.log(rm[8]);
+    throw new Error("undefined tempchar");
+  }
+  c.temp = new TempChar(tempchar);
+  
+  // Parameter: Failure rate / design
+  // (ignore) rm[9]
+  
+  // Parameter: Termination
+  // (ignore) rm[10]
+  
+  // Parameter: Packaging
+  let packagings = {
+    "": "bulk bag",
+    "TU": "7\" reel, unmarked",
+    "7411": "13\" reel, unmarked",
+    "7210": "13\" reel, unmarked",
+    "7867": "13\" reel, unmarked",
+    "TM": "7\" reel, marked",
+    "7013": "7\" reel, marked",
+    "7025": "7\" reel, marked",
+    "7040": "13\" reel, marked",
+    "7215": "13\" reel, marked",
+    "7081": "7\" reel, unmarked, 2 mm pitch",
+    "7082": "13\" reel, unmarked, 2 mm pitch",
+    "7800": "7\" reel, unmarked",
+    "7805": "7\" reel, unmarked",
+    "7810": "13\" reel, unmarked",
+    "9028": "special bulk casette, unmarked",
+    "3325": "special bulk casette, marked",
+  }
+  c.pack = packagings[rm[11]];
+  if (c.pack === undefined) {
+    console.log(rm);
+    console.log(rm[11]);
+    throw new Error("undefined packaging");
+  }
+  
+  // "(TU|7411|7210|TM|7040|7215|7081|7082)"
+  
+  return c;
+};
+
 class DataSource {
   constructor(url, parser) {
     this.url = url;
@@ -435,6 +585,7 @@ function parseDataSources(i, items, dataSources, last) {
         items.push(dataSources[i].parser.parse(match));
       }
       
+      console.log(items.length);
       if (i < dataSources.length - 1) {
         parseDataSources(i + 1, items, dataSources, last);
       } else {
@@ -444,10 +595,16 @@ function parseDataSources(i, items, dataSources, last) {
   };
 }
 
+let spacer = document.createElement("p");
+spacer.innerHTML = ("zzz");
+spacer.style.fontSize = "200px";
+document.body.appendChild(spacer);
+
 let capacitors = [];
 let dataSources = [
-  new DataSource("data/tdk_flex.capacitor", tdkParser),
-  new DataSource("data/samsung_flex.capacitor", samsungParser),
+//  new DataSource("data/tdk_flex.capacitor", tdkParser), // 554 pcs
+//  new DataSource("data/samsung_flex.capacitor", samsungParser), // 134 pcs
+  new DataSource("data/kemet/c1.html", kemetParser), // 500 pcs
   ];
 parseDataSources(0, capacitors, dataSources, display);
 
