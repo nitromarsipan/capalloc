@@ -190,8 +190,8 @@ function tempColor(char, border) {
 }
 
 function makeInfoDecal(item, width, height, border) {
-  let contentWidth = width - 2*border;
-  let contentHeight = height/3 - 2*border;
+  let contentWidth = Math.ceil(width - 2*border);
+  let contentHeight = Math.ceil(height/3 - 2*border);
   let itemD = document.createElement("div");
   itemD.className = "item hoverinfo";
   itemD.style.width = width + "px";
@@ -201,6 +201,7 @@ function makeInfoDecal(item, width, height, border) {
   sizeD = document.createElement("div");
   sizeD.className = "item_param";
   sizeD.innerHTML = item.size;
+  sizeD.style.lineHeight = contentHeight + "px";
   sizeD.style.width = contentWidth + "px";
   sizeD.style.height = contentHeight + "px";
   sizeD.style.backgroundColor = sizeColor(item.size, false);
@@ -246,6 +247,7 @@ function makeInfoDecal(item, width, height, border) {
     flexD = document.createElement("div");
     flexD.className = "item_param";
     flexD.innerHTML = "flex";
+    flexD.style.lineHeight = contentHeight + "px";
     flexD.style.width = contentWidth + "px";
     flexD.style.height = contentHeight + "px";
     flexD.style.backgroundColor = "hsl(90, 25%, 70%)";
@@ -362,10 +364,40 @@ function display(cs) {
       itemD = makeInfoDecal(item, itemWidth, itemHeight, itemBorder);
       a.appendChild(itemD);
       
-      let span = document.createElement("span");
-      span.className = "hoverinfotext";
-      span.innerHTML = item.m + " " + item.mpn;
-      itemD.appendChild(span);
+      // Detailed info showed when mouse over decal
+      let hover = document.createElement("span");
+      hover.className = "hoverinfotext";
+      hover.innerHTML = item.m + " " + item.mpn;
+      itemD.appendChild(hover);
+      
+      largeItemD = makeInfoDecal(item, 80, 80, 1);
+      hover.appendChild(largeItemD);
+      
+      let s;
+      let basicText = document.createElement("p");
+      s = printCapCode(item.capCode) + " " +
+        item.voltage + "V";
+      basicText.innerHTML = s;
+      hover.appendChild(basicText);
+      
+      let sizeText = document.createElement("p");
+      s = "Size " + item.size + " (EIA " + size.m[item.size] + ")";
+      sizeText.innerHTML = s;
+      hover.appendChild(sizeText);
+      
+      let tempText = document.createElement("p");
+      s = item.temp.code +
+        " [" + item.temp.temp[0] + ", " + item.temp.temp[1] + "] °C" +
+        " [" + item.temp.tol[0] + ", " + item.temp.tol[1] + "] %";
+      tempText.innerHTML = s;
+      hover.appendChild(tempText);
+      
+      if (item.flexterm !== undefined) {
+        let flexText = document.createElement("p");
+        s = item.flexterm;
+        flexText.innerHTML = s;
+        hover.appendChild(flexText);
+      }
       
       d.appendChild(a);
     }
