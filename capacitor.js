@@ -143,7 +143,7 @@ tdkParser.parse = function(rm) {
   // (ignored) rm[4]
 
   // Parameter: Temperature characteristic
-  c.characteristic = rm[5];
+  c.temp = new TempChar(rm[5]);
 
   // Parameter: Rated voltage
     let voltages = {
@@ -189,6 +189,52 @@ tdkParser.parse = function(rm) {
   return c;
 };
 
+class TempChar {
+  constructor(code) {
+    this.code = code;
+    let minTemp;
+    let maxTemp;
+    
+    // Analyse temperature characteristic.
+    if (code === "C0G" || code === "NP0") {
+      minTemp = -55;
+      maxTemp = 125;
+      this.tol = [-0.54, 0.54]; // (125 - (-55)) °C * 30e-6/°C = 0.54 %
+      this.class = "1";
+    } else {
+      this.class = "2";
+      let minTemps = {
+        "X": -55,
+        "Y": -30,
+        "Z": 10,
+      };
+      minTemp = minTemps[code.slice(0,1)];
+      
+      let maxTemps = {
+        "4": 65,
+        "5": 85,
+        "6": 105,
+        "7": 125,
+        "8": 150,
+        "9": 200,
+      };
+      maxTemp = maxTemps[code.slice(1,2)];
+      
+      let tols = {
+        "P": [-10, 10],
+        "R": [-15, 15],
+        // "L": [-15, 15] [-40, 15] above 125°C
+        "S": [-22, 22],
+        "T": [-33, 22],
+        "U": [-56, 22],
+        "V": [-82, 22],
+      };
+      this.tol = tols[code.slice(2,3)];
+    }
+  
+    this.temp = [minTemp, maxTemp];
+  }
+}
 
 // Parser for Samsung MLCC MPNs
 let samsungParser = new CapacitorParser();
@@ -256,11 +302,17 @@ samsungParser.parse = function(rm) {
     "L": "S2L",
     "A": "X5R",
     "B": "X7R",
-    "y": "X7S",
+    "Y": "X7S",
     "X": "X6S",
     "F": "Y5V",
   };
-  c.characteristic = characteristics[rm[3]];
+  let tempchar = characteristics[rm[3]];
+  if (tempchar == undefined) {
+    console.log(rm);
+    console.log(rm[3]);
+    throw new Error("undefined tempchar");
+  }
+  c.temp = new TempChar(tempchar);
   
   // Parameter: Nominal capacitance
   let s_cap_m = rm[4];
@@ -270,7 +322,7 @@ samsungParser.parse = function(rm) {
   }
   c.capacitance = parseFloat(s_cap_m) *
    Math.pow(10.0, parseInt(s_cap_e) - 12);
-    
+  
   c.capCode = rm[4] + rm[5];
 
   // Parameter: Capacitance tolerance

@@ -52,11 +52,18 @@ div.item {
 }
 
 div.item_param {
-  padding: 1px;
+  padding: 0px;
   border: 1px;
   border-style: solid;
   color: #111111;
   text-align: center;
+}
+
+div.temp_ind {
+  margin: 0px;
+  border: 0px;
+  padding: 0px;
+  float: left;
 }
 
 .hoverinfo {
@@ -68,12 +75,14 @@ div.item_param {
 .hoverinfo .hoverinfotext {
     visibility: hidden;
     width: 240px;
+    height: 240px;
     background-color: #111111;
     color: #eeeeee;
     text-align: center;
     border-radius: 4px;
     padding: 5px 0;
     font-size: 16px;
+    z-index: 50;
     
     /* Position the tooltip */
     position: absolute;

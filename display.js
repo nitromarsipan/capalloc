@@ -42,7 +42,7 @@ capacitances = [];
 capCodes = [];
 voltages = [];
 sizes = [];
-characteristics = [];
+tempCodes = [];
 thicknesses = [];
   
 function find_ranges(cs) {
@@ -75,8 +75,8 @@ function find_ranges(cs) {
       function(a, b) {return (a == b);});
     
     insert_sorted(
-      c.characteristic,
-      characteristics,
+      c.temp.code,
+      tempCodes,
       function(a, b) {return (a < b);},
       function(a, b) {return (a == b);});
     
@@ -170,8 +170,8 @@ function sizeColor(size, border) {
   return "hsl(" + hue + ", " + sat + ", " + lig + ")";
 }
 
-// Return HTML colour code to indicate component characteristic
-function charColor(char, border) {
+// Return HTML colour code to indicate component temperature characteristic
+function tempColor(char, border) {
   let hue = 10;
   let sat = 70;
   let lig = 70;
@@ -189,17 +189,75 @@ function charColor(char, border) {
   return "hsl(" + hue + ", " + sat + "%, " + lig + "%)";
 }
 
+function makeInfoDecal(item, width, height, border) {
+  let contentWidth = width - 2*border;
+  let contentHeight = height/3 - 2*border;
+  let itemD = document.createElement("div");
+  itemD.className = "item hoverinfo";
+  itemD.style.width = width + "px";
+  itemD.style.height = height + "px";
+
+  // Display item package size
+  sizeD = document.createElement("div");
+  sizeD.className = "item_param";
+  sizeD.innerHTML = item.size;
+  sizeD.style.width = contentWidth + "px";
+  sizeD.style.height = contentHeight + "px";
+  sizeD.style.backgroundColor = sizeColor(item.size, false);
+  sizeD.style.borderColor = sizeColor(item.size, true);
+  itemD.appendChild(sizeD);
+
+  // Display item material temperature code
+  charD = document.createElement("div");
+  charD.className = "item_param";
+  charD.style.width = contentWidth + "px";
+  charD.style.height = contentHeight + "px";
+  charD.style.backgroundColor =
+    tempColor(item.temp.code, false);
+  charD.style.borderColor =
+    tempColor(item.temp.code, true);
+  itemD.appendChild(charD);
+
+  // Material temperature range indicator
+  let tempInd = document.createElement("div");
+  tempInd.className = "temp_ind";
+  let MINTEMP = -55;
+  let MAXTEMP = 200;
+  let minTempRatio = (item.temp.temp[0] - MINTEMP)/(MAXTEMP - MINTEMP);
+  let ml = Math.ceil(minTempRatio*contentWidth) + "px";
+  tempInd.style.marginLeft = ml;
+  let tempRatio = (item.temp.temp[1] - item.temp.temp[0])/(MAXTEMP - MINTEMP);
+  let w = Math.ceil(tempRatio*contentWidth) + "px";
+  tempInd.style.width = w;
+
+  let MINTOL = -100;
+  let MAXTOL = 100;
+  let minTolRatio = (item.temp.tol[0] - MINTOL)/(MAXTOL - MINTOL);
+  let mt = Math.ceil(minTolRatio*contentHeight) + "px";
+  tempInd.style.marginTop = mt;
+  let tolRatio = (item.temp.tol[1] - item.temp.tol[0])/(MAXTOL - MINTOL);
+  let h = Math.ceil(tolRatio*contentHeight) + "px";
+  tempInd.style.height = h;
+  tempInd.style.backgroundColor = "hsl(0, 90%, 20%)";
+  charD.appendChild(tempInd);
+
+  // Display flex termination
+  if (item.flexterm != undefined) {
+    flexD = document.createElement("div");
+    flexD.className = "item_param";
+    flexD.innerHTML = "flex";
+    flexD.style.width = contentWidth + "px";
+    flexD.style.height = contentHeight + "px";
+    flexD.style.backgroundColor = "hsl(90, 25%, 70%)";
+    flexD.style.borderColor = "hsl(90, 15%, 60%)";
+    itemD.appendChild(flexD);
+  }
+
+  return itemD;
+}
+
 function display(cs) {
   find_ranges(cs);
-  
-  if (false) {
-    console.log(capacitances);
-    console.log(capCodes);
-    console.log(voltages);
-    console.log(sizes);
-    console.log(characteristics);
-    console.log(thicknesses);
-  }
   
   // Setup axes
   let axes = [];
@@ -297,44 +355,18 @@ function display(cs) {
         item.mpn +
         "&start=0";
       a.rel = "external noreferrer";
-        
-      let itemD = document.createElement("div");
-      itemD.className = "item hoverinfo";
       
-      // Display item package size
-      sizeD = document.createElement("div");
-      sizeD.className = "item_param";
-      sizeD.innerHTML = item.size;
-      sizeD.style.backgroundColor = sizeColor(item.size, false);
-      sizeD.style.borderColor = sizeColor(item.size, true);
-      itemD.appendChild(sizeD);
-      
-      // Display item material characteristic code
-      charD = document.createElement("div");
-      charD.className = "item_param";
-      charD.innerHTML = item.characteristic;
-      charD.style.backgroundColor =
-        charColor(item.characteristic, false);
-      charD.style.borderColor =
-        charColor(item.characteristic, true);
-      itemD.appendChild(charD);
-      
-      // Display flex termination
-      if (item.flexterm != undefined) {
-        flexD = document.createElement("div");
-        flexD.className = "item_param";
-        flexD.innerHTML = "flex";
-        flexD.style.backgroundColor = "hsl(90, 70%, 70%)";
-        flexD.style.borderColor = "hsl(90, 60%, 60%)";
-        itemD.appendChild(flexD);
-      }
+      let itemWidth = 24;
+      let itemHeight = 24;
+      let itemBorder = 1;
+      itemD = makeInfoDecal(item, itemWidth, itemHeight, itemBorder);
+      a.appendChild(itemD);
       
       let span = document.createElement("span");
       span.className = "hoverinfotext";
       span.innerHTML = item.m + " " + item.mpn;
       itemD.appendChild(span);
       
-      a.appendChild(itemD);
       d.appendChild(a);
     }
     grid.appendChild(d);
