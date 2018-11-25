@@ -174,7 +174,12 @@ tdkParser.parse = function(rm) {
   c.capCode = rm[7] + rm[8];
 
   // Parameter: Capacitance tolerance
-  // (ignore) rm[9]
+  let tols = {
+    "J": [-5, 5],
+    "K": [-10, 10],
+    "M": [-20, 20],
+  };
+  c.tol = tols[rm[9]];
 
   // Parameter: Packaging style
   // (ignore) rm[11]
@@ -326,8 +331,15 @@ samsungParser.parse = function(rm) {
   c.capCode = rm[4] + rm[5];
 
   // Parameter: Capacitance tolerance
-  // (ignore) rm[6]
-  // K: ±10 %
+  let tols = {
+    "F": [-1, 1],
+    "G": [-2, 2],
+    "J": [-5, 5],
+    "K": [-10, 10],
+    "M": [-20, 20],
+    "Z": [-20, 80],
+  };
+  c.tol = tols[rm[6]];
 
   // Parameter: Rated voltage
     let voltages = {

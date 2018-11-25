@@ -1,4 +1,7 @@
 // Copyright 2018 Magnus Sollien Sjursen <m@didakt.no>
+//
+// Thanks to Martin Stensgård for good ideas on
+// how to render capacitor properties.
 
 // a and b are 3 digit capacitance codes
 // 104 means 10*10^4 pF
@@ -158,7 +161,7 @@ function sizeColor(size, border) {
   let lRatio = Math.sqrt(aRatio); // rel to length scale
   let w = Math.pow(lRatio, 1);
   
-  let hue = Math.floor(360*w);
+  let hue = Math.floor(360 - 260*w - 100); // Smaller size -> smaller wavelength
   let sat = "70%";
   let lig = "70%";
   
@@ -171,11 +174,11 @@ function sizeColor(size, border) {
 }
 
 // Return HTML colour code to indicate component temperature characteristic
-function tempColor(char, border) {
+function tempColor(temp, border) {
   let hue = 10;
   let sat = 70;
   let lig = 70;
-  if (char === "C0G" || char === "NP0") {
+  if (temp.class === "1") {
     hue = 10;
     sat = 0;
     lig = 100;
@@ -214,9 +217,9 @@ function makeInfoDecal(item, width, height, border) {
   charD.style.width = contentWidth + "px";
   charD.style.height = contentHeight + "px";
   charD.style.backgroundColor =
-    tempColor(item.temp.code, false);
+    tempColor(item.temp, false);
   charD.style.borderColor =
-    tempColor(item.temp.code, true);
+    tempColor(item.temp, true);
   itemD.appendChild(charD);
 
   // Material temperature range indicator
@@ -375,8 +378,15 @@ function display(cs) {
       
       let s;
       let basicText = document.createElement("p");
-      s = printCapCode(item.capCode) + " " +
-        item.voltage + "V";
+      if (-item.tol[0] === item.tol[1]) {
+        s = printCapCode(item.capCode) +
+          " ±" + item.tol[1] + " % " +
+          item.voltage + " V";
+      } else {      
+        s = printCapCode(item.capCode) +
+          " [" + item.tol[0] + ", " + item.tol[1] + "] % " +
+          item.voltage + " V";
+      }
       basicText.innerHTML = s;
       hover.appendChild(basicText);
       
@@ -387,8 +397,12 @@ function display(cs) {
       
       let tempText = document.createElement("p");
       s = item.temp.code +
-        " [" + item.temp.temp[0] + ", " + item.temp.temp[1] + "] °C" +
-        " [" + item.temp.tol[0] + ", " + item.temp.tol[1] + "] %";
+        " [" + item.temp.temp[0] + ", " + item.temp.temp[1] + "] °C";
+      if (-item.temp.tol[0] === item.temp.tol[1]) {
+        s = s + " ±" + item.temp.tol[1] + " %";
+      } else {
+        s = s + " [" + item.temp.tol[0] + ", " + item.temp.tol[1] + "] %";
+      }
       tempText.innerHTML = s;
       hover.appendChild(tempText);
       
