@@ -413,52 +413,43 @@ samsungParser.parse = function(rm) {
   return c;
 };
 
+class DataSource {
+  constructor(url, parser) {
+    this.url = url;
+    this.parser = parser;
+  }
+}
+
+function parseDataSources(i, items, dataSources, last) {
+  let f = new XMLHttpRequest();
+  f.open("GET", dataSources[i].url);
+  f.send();
+
+  // Parse list and display it when done.
+  f.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      s = f.responseText;
+
+      let match;
+      while (match = dataSources[i].parser.regex.exec(s)) {
+        items.push(dataSources[i].parser.parse(match));
+      }
+      
+      if (i < dataSources.length - 1) {
+        parseDataSources(i + 1, items, dataSources, last);
+      } else {
+        last(items);
+      }
+    }
+  };
+}
 
 let capacitors = [];
-
-// Fetch tdk capacitor listing for parsing.
-function fetchTDK() {
-  let f = new XMLHttpRequest();
-  f.open("GET", "tdk_flex.capacitor");
-  f.send();
-
-  // Parse list and display it when done.
-  f.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      s = f.responseText;
-
-      let match;
-      while (match = tdkParser.regex.exec(s)) {
-        capacitors.push(tdkParser.parse(match));
-      }
-      
-      fetchSamsung();
-    }
-  };
-}
-
-// Fetch Samsung capacitor listing for parsing.
-function fetchSamsung() {
-  let f = new XMLHttpRequest();
-  f.open("GET", "samsung_flex.capacitor");
-  f.send();
-
-  // Parse list and display it when done.
-  f.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      s = f.responseText;
-
-      let match;
-      while (match = samsungParser.regex.exec(s)) {
-        capacitors.push(samsungParser.parse(match));
-      }
-      
-      display(capacitors);
-    }
-  };
-}
-
-fetchTDK();
+let dataSources = [
+  new DataSource("data/tdk_flex.capacitor", tdkParser),
+  new DataSource("data/samsung_flex.capacitor", samsungParser),
+  ];
+parseDataSources(0, capacitors, dataSources, display);
 
 // To run:
 // run python -m http.server 8000 in the root directory,

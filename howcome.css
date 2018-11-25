@@ -18,6 +18,7 @@ div.cell.corner_header {
   background-color: inherit;
   border-color: white;
   text-align: center;
+  position: sticky;
 }
 
 div.cell.col_header:not(.row_header),

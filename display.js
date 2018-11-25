@@ -162,11 +162,11 @@ function sizeColor(size, border) {
   let w = Math.pow(lRatio, 1);
   
   let hue = Math.floor(360 - 260*w - 100); // Smaller size -> smaller wavelength
-  let sat = "70%";
+  let sat = "80%";
   let lig = "70%";
   
   if (border) {
-    sat = "60%";
+    sat = "70%";
     lig = "60%";
   }
 
@@ -176,12 +176,12 @@ function sizeColor(size, border) {
 // Return HTML colour code to indicate component temperature characteristic
 function tempColor(temp, border) {
   let hue = 10;
-  let sat = 70;
-  let lig = 70;
+  let sat = 0;
+  let lig = 80;
   if (temp.class === "1") {
     hue = 10;
     sat = 0;
-    lig = 100;
+    lig = 95;
   }
   
   if (border) {
@@ -391,7 +391,7 @@ function display(cs) {
       hover.appendChild(basicText);
       
       let sizeText = document.createElement("p");
-      s = "Size " + item.size + " (EIA " + size.m[item.size] + ")";
+      s = "Size JEDEC " + item.size + " (EIA " + size.m[item.size] + ")";
       sizeText.innerHTML = s;
       hover.appendChild(sizeText);
       
@@ -418,4 +418,5 @@ function display(cs) {
     grid.appendChild(d);
     document.body.appendChild(grid);
   }
+  console.log(window.performance.memory);
 }
