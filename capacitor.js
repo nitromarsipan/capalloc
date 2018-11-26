@@ -49,6 +49,13 @@ for (let key in size.m) {
   size.i[size.m[key]] = key;
 }
 
+class Value {
+  constructor(m, e) {
+    this.m = m;
+    this.e = e;
+  }
+}
+
 class Capacitor {
   constructor() {
   }
@@ -162,14 +169,8 @@ tdkParser.parse = function(rm) {
   c.voltage = voltages[rm[6]];
 
   // Parameter: Nominal capacitance
-  let s_cap_m = rm[7];
-  let s_cap_e = rm[8];
-  c.capacitance = parseFloat(s_cap_m) *
-   Math.pow(10.0, parseInt(s_cap_e) - 12);
-  // c.capacitance = parseInt(s_cap_m) *
-    // Math.pow(10.0, parseInt(s_cap_e));
-    
-  c.capCode = rm[7] + rm[8];
+  let e = parseInt(rm[8]) - 12;
+  c.capVal = new Value(parseInt(rm[7]), e);
 
   // Parameter: Capacitance tolerance
   let tols = {
@@ -316,15 +317,8 @@ samsungParser.parse = function(rm) {
   c.temp = new TempChar(tempchar);
   
   // Parameter: Nominal capacitance
-  let s_cap_m = rm[4];
-  let s_cap_e = rm[5];
-  if (s_cap_m.slice(1,2) == "R") {
-    throw new Error("R not implemented.");
-  }
-  c.capacitance = parseFloat(s_cap_m) *
-   Math.pow(10.0, parseInt(s_cap_e) - 12);
-  
-  c.capCode = rm[4] + rm[5];
+  let e = parseInt(rm[5]) - 12;
+  c.capVal = new Value(parseInt(rm[4]), e);
 
   // Parameter: Capacitance tolerance
   let tols = {
@@ -427,20 +421,18 @@ let kemetParser = new CapacitorParser();
 kemetParser.regex = new RegExp(
   "(C)" +
   "([0-9]{4})" +
-  "(C)" +
+  "([CXFJSYTVW])" +
   "([0-9][0-9R])" +
   "([0-9])" +
   "([BCDFGJKMZ])" +
-  "([98436512A])" +
-  "([GJPRUV])" +
-  "([A])" +
-  "([C])" +
-  "(|TU|7411|7210|TM|7040|7013|7025|7215|7081|7082|" +
-  "7800|7805|7810|7867|9028|9239|3325)" +
+  "([798436512ACBDFGZH])" +
+  "([GHJNPRUV])" +
+  "([ABC12])" +
+  "([CL])" +
+  "(TU|7411|7210|TM|7040|7013|7025|7215|7081|7082|" +
+  "7186|7289|7800|7805|7810|7867|9028|9239|3325|AUTO|" +
+  "AUTO7411|AUTO7210|AUTO7289|)",
   "g");
-
-kemetParser.regex = new RegExp(
-  "(C)(0201)(C)(10)(1)(J)(4)(G)(A)(C)(7867)", "g");
 
 kemetParser.parse = function(rm) {
   let c = new Capacitor();
@@ -460,18 +452,70 @@ kemetParser.parse = function(rm) {
   }
   
   // Parameter: Series
-  c.series = rm[3];
+  if (rm[3] === "C") {
+    c.series = "Standard";
+  } else if (rm[3] === "X") {
+    c.series = "Flexible termination";
+    c.flexterm = "Flexible termination";
+  } else if (rm[3] === "F") {
+    c.series = "Open mode";
+  } else if (rm[3] === "J") {
+    c.series = "Open mode";
+    c.flexterm = "Flexible termination";
+  } else if (rm[3] === "S") {
+    c.series = "Floating electrode";
+  } else if (rm[3] === "Y") {
+    c.series = "Floating electrode with flexible termination";
+    c.flexterm = "Flexible termination";
+  } else if (rm[3] === "V") {
+    c.series = "ArcShield";
+  } else if (rm[3] === "W") {
+    c.series = "ArcShield with flexible termination";
+    c.flexterm = "Flexible termination";
+  } else if (rm[3] === "T") {
+    c.series = "COTS";
+    if (rm[9] === "A") {
+      c.design = "MIL-PRF-55681 PDA 8 %";
+    } else if (rm[9] === "B") {
+      c.design = "MIL-PRF-556851 PDA 8 %, DPA EIA-469";
+    } else if (rm[9] === "C") {
+      c.design = "MIL-PRF-55681 PDA 8 %, DPA EIA-469, MIL-STD-202 103 A";
+    }
+  } else {
+    c.series = rm[3];
+  }
   
   // Parameter: Nominal capacitance
+  /*
   let s_cap_m = rm[4];
   let s_cap_e = rm[5];
   if (s_cap_m.slice(1,2) == "R") {
     throw new Error("R not implemented.");
   }
-  c.capacitance = parseFloat(s_cap_m) *
-   Math.pow(10.0, parseInt(s_cap_e) - 12);
+  // Kemet uses 8 and 9 as special codes for small values
+  if (s_cap_e === "8") {
+  console.log(s_cap_e);
+    c.capacitance = parseFloat(s_cap_m) *
+     Math.pow(10.0, -13);
+  } else if (s_cap_e === "9") {
+  console.log(s_cap_e);
+    c.capacitance = parseFloat(s_cap_m) *
+     Math.pow(10.0, -14);
+  } else {
+    c.capacitance = parseFloat(s_cap_m) *
+     Math.pow(10.0, parseInt(s_cap_e) - 12); 
+  }*/
+  let e;
+  if (rm[5] === "9") {
+    e = -13;
+  } else if (rm[5] === "8") {
+    e = -14;
+  } else {
+    e = parseInt(rm[5]) - 12;
+  }
+  c.capVal = new Value(parseInt(rm[4]), e);
   
-  c.capCode = rm[4] + rm[5];
+  //c.capCode = rm[4] + rm[5];
 
   // Parameter: Capacitance tolerance
   let tols = {
@@ -491,6 +535,7 @@ kemetParser.parse = function(rm) {
   
   // Parameter: Rated voltage
   let voltages = {
+    "7": 4,
     "9": 6.3,
     "8": 10,
     "4": 16,
@@ -500,6 +545,13 @@ kemetParser.parse = function(rm) {
     "1": 100,
     "2": 200,
     "A": 250,
+    "C": 500,
+    "B": 630,
+    "D": 1000,
+    "F": 1500,
+    "G": 2000,
+    "Z": 2500,
+    "H": 3000,
   }
   c.voltage = voltages[rm[7]];
   if (c.voltage === undefined) {
@@ -511,7 +563,9 @@ kemetParser.parse = function(rm) {
   // Parameter: Temperature characteristic
   let temps = {
     "G": "C0G",
+    "H": "X8R",
     "J": "U2J",
+    "N": "X8L",
     "P": "X5R",
     "R": "X7R",
     "U": "Z5U",
@@ -526,10 +580,23 @@ kemetParser.parse = function(rm) {
   c.temp = new TempChar(tempchar);
   
   // Parameter: Failure rate / design
-  // (ignore) rm[9]
+  if (c.design === undefined) {
+    if (rm[9] === "A") {
+    
+    } else if (rm[9] === "1") {
+      c.design = "KPS Single chip stack";
+    } else if (rm[9] === "2") {
+      c.design = "KPS Double chip stack";
+    }
+  }
   
   // Parameter: Termination
   // (ignore) rm[10]
+  let terms = {
+    "C": "Sn 100 %",
+    "L": "SnPb (Pb > 5 %)",
+  }
+  c.term = terms[rm[10]];
   
   // Parameter: Packaging
   let packagings = {
@@ -550,6 +617,12 @@ kemetParser.parse = function(rm) {
     "7810": "13\" reel, unmarked",
     "9028": "special bulk casette, unmarked",
     "3325": "special bulk casette, marked",
+    "7186": "7\" reel, unmarked",
+    "7289": "13\" reel, unmarked",
+    "AUTO": "7\" reel, plastic, auto grade",
+    "AUTO7289": "13\" reel, plastic, auto grade", 
+    "AUTO7411": "13\" reel, paper, auto grade", 
+    "AUTO7210": "13\" reel, plastic, auto grade", 
   }
   c.pack = packagings[rm[11]];
   if (c.pack === undefined) {
@@ -582,10 +655,17 @@ function parseDataSources(i, items, dataSources, last) {
 
       let match;
       while (match = dataSources[i].parser.regex.exec(s)) {
-        items.push(dataSources[i].parser.parse(match));
+        let alreadyThere = false;
+        for (let i in items) {
+          if (items[i].mpn === match[0]) {
+            alreadyThere = true;
+          }
+        }
+        if (!alreadyThere) {
+          items.push(dataSources[i].parser.parse(match));
+        }
       }
       
-      console.log(items.length);
       if (i < dataSources.length - 1) {
         parseDataSources(i + 1, items, dataSources, last);
       } else {
@@ -595,16 +675,17 @@ function parseDataSources(i, items, dataSources, last) {
   };
 }
 
-let spacer = document.createElement("p");
-spacer.innerHTML = ("zzz");
-spacer.style.fontSize = "200px";
-document.body.appendChild(spacer);
-
 let capacitors = [];
 let dataSources = [
-//  new DataSource("data/tdk_flex.capacitor", tdkParser), // 554 pcs
-//  new DataSource("data/samsung_flex.capacitor", samsungParser), // 134 pcs
+  new DataSource("data/tdk_flex.capacitor", tdkParser), // 554 pcs
+  new DataSource("data/samsung_flex.capacitor", samsungParser), // 134 pcs
   new DataSource("data/kemet/c1.html", kemetParser), // 500 pcs
+//  new DataSource("data/kemet/c2.html", kemetParser), // 500 pcs
+//  new DataSource("data/kemet/c3.html", kemetParser), // 500 pcs
+//  new DataSource("data/kemet/c4.html", kemetParser), // 500 pcs
+//  new DataSource("data/kemet/c5.html", kemetParser), // 500 pcs
+//  new DataSource("data/kemet/c6.html", kemetParser), // 500 pcs
+//  new DataSource("data/kemet/csmall_test.html", kemetParser), // 17 pcs
   ];
 parseDataSources(0, capacitors, dataSources, display);
 

@@ -3,18 +3,20 @@
 // Thanks to Martin Stensgård for good ideas on
 // how to render capacitor properties.
 
-// a and b are 3 digit capacitance codes
-// 104 means 10*10^4 pF
-// Returns whether a is smaller than b.
-function cc_lt(a, b) {
-  let ae = parseInt(a.slice(0,2));
-  let ax = parseInt(a.slice(-1));
-  let be = parseInt(b.slice(0,2));
-  let bx = parseInt(b.slice(-1));
-  if (ax < bx) {
+// a and b are instances of Value
+function ccLt(a, b) {
+  if (a.e < b.e) {
     return true;
-  } else if (bx == ax) {
-    return ae < be;
+  } else if (a.e == b.e) {
+    return a.m < b.m;
+  } else {
+    return false;
+  }
+}
+
+function ccEq(a, b) {
+  if ((a.e === b.e) && (a.m === b.m)) {
+    return true;
   } else {
     return false;
   }
@@ -42,7 +44,7 @@ function insert_sorted(value, list, lt, eq) {
 
 // Lists of values present in the components
 capacitances = [];
-capCodes = [];
+capVals = [];
 voltages = [];
 sizes = [];
 tempCodes = [];
@@ -60,10 +62,10 @@ function find_ranges(cs) {
       function(a, b) {return (a == b);});
     
     insert_sorted(
-      c.capCode,
-      capCodes,
-      cc_lt,
-      function(a, b) {return (a == b);});
+      c.capVal,
+      capVals,
+      ccLt,
+      ccEq);
     
     insert_sorted(
       c.voltage,
@@ -99,11 +101,25 @@ class Axis {
   }
   
   indexOf(item) {
-    let i = this.values.indexOf(this.valueExtractor(item));
+    let ex = this.valueExtractor;
+    let i;
+    let value = this.valueExtractor(item);
+    if (!(value instanceof Value)) {
+      i = this.values.indexOf(value);
+    } else {
+      for (let j in this.values) {
+        let a = this.values[j];
+        if ((a.e === value.e) && (a.m === value.m)) {
+          i = j;
+          break;
+        }
+      }
+    }
+    
     if (i >= 0) {
       return i;
     } else {
-      throw new Error("Value " + valueExtractor(item) +
+      throw new Error("Value " + this.valueExtractor(item) +
         " not in " + this.values + " .");
     }
   }
@@ -131,19 +147,20 @@ class Cell {
 }
 
 // Pretty print a capacitance code
-function printCapCode(code) {
-  let e = parseInt(code.slice(0,2));
-  let x = parseInt(code.slice(-1)) - 12;
-  let xt = 3*Math.floor((x + 1)/3);
+function printCapVal(capVal) {
+  let m = capVal.m;
+  let e = capVal.e;
+  let xt = 3*Math.floor((e + 1)/3);
   let prefixes = {
     "-3": "m",
     "-6": "µ",
     "-9": "n",
     "-12": "p",
     "-15": "f",
+    "-18": "a",
   }
   let prefix = prefixes[xt];
-  let n = e*Math.pow(10, x - xt);
+  let n = m*Math.pow(10, e - xt);
   return n.toFixed(1) + " " + prefix + "F";
 }
 
@@ -153,13 +170,14 @@ function sizeColor(size, border) {
     return size.slice(0,2)*size.slice(2,4);
   }
   
-  let min = a("1005");
+  let min = a("0603");
   let max = a("7563");
   let s = a(size);
   // Area of item relative to area scale
   let aRatio = (s - min)/(max - min);
   let lRatio = Math.sqrt(aRatio); // rel to length scale
-  let w = Math.pow(lRatio, 1);
+  //let w = lRatio;
+  let w = Math.sqrt(lRatio);
   
   let hue = Math.floor(360 - 260*w - 100); // Smaller size -> smaller wavelength
   let sat = "80%";
@@ -242,19 +260,24 @@ function makeInfoDecal(item, width, height, border) {
   let tolRatio = (item.temp.tol[1] - item.temp.tol[0])/(MAXTOL - MINTOL);
   let h = Math.ceil(tolRatio*contentHeight) + "px";
   tempInd.style.height = h;
-  tempInd.style.backgroundColor = "hsl(0, 90%, 20%)";
+  tempInd.style.backgroundColor = "hsl(0, 0%, 20%)";
   charD.appendChild(tempInd);
 
   // Display flex termination
-  if (item.flexterm != undefined) {
+  //if (item.flexterm != undefined) {
+  if (true) { // decals did not tile right without this
     flexD = document.createElement("div");
     flexD.className = "item_param";
-    flexD.innerHTML = "flex";
+    if (item.flexterm != undefined) {
+      flexD.innerHTML = "flex";
+    } else {
+      flexD.innerHTML = "&nbsp";
+    }
     flexD.style.lineHeight = contentHeight + "px";
     flexD.style.width = contentWidth + "px";
     flexD.style.height = contentHeight + "px";
-    flexD.style.backgroundColor = "hsl(90, 25%, 70%)";
-    flexD.style.borderColor = "hsl(90, 15%, 60%)";
+    flexD.style.backgroundColor = "hsl(90, 0%, 80%)";
+    flexD.style.borderColor = "hsl(90, 0%, 70%)";
     itemD.appendChild(flexD);
   }
 
@@ -262,6 +285,26 @@ function makeInfoDecal(item, width, height, border) {
 }
 
 function display(cs) {
+  // Title and copyright assertion
+  let title = document.createElement("p");
+  title.innerHTML = "Capalloc © 2018 Magnus Sollien Sjursen";
+  title.style.fontSize = "18px";
+  title.style.padding = "5px";
+  document.body.appendChild(title);
+  
+  // Debug info  
+  let loadCount = document.createElement("p");
+  loadCount.innerHTML = "Loaded " + cs.length + " part numbers.";
+  loadCount.style.fontSize = "30px";
+  loadCount.style.padding = "5px";
+  document.body.appendChild(loadCount);
+  
+  // Spacer (to keep hover boxes on screen)
+  let spacer = document.createElement("div");
+  spacer.style.height = "130px";
+  spacer.style.width = "130px";
+  document.body.appendChild(spacer);
+  
   find_ranges(cs);
   
   // Setup axes
@@ -271,9 +314,9 @@ function display(cs) {
     function(i) {return i.voltage;},
     function(i) {return this.values[i] + " V";}));
   axes.push(new Axis(
-    capCodes,
-    function(i) {return i.capCode;},
-    function(i) {return printCapCode(this.values[i]);}));
+    capVals,
+    function(i) {return i.capVal;},
+    function(i) {return printCapVal(this.values[i]);}));
   /*
   axes.push(new Axis(
     sizes,
@@ -379,11 +422,11 @@ function display(cs) {
       let s;
       let basicText = document.createElement("p");
       if (-item.tol[0] === item.tol[1]) {
-        s = printCapCode(item.capCode) +
+        s = printCapVal(item.capVal) +
           " ±" + item.tol[1] + " % " +
           item.voltage + " V";
       } else {      
-        s = printCapCode(item.capCode) +
+        s = printCapVal(item.capVal) +
           " [" + item.tol[0] + ", " + item.tol[1] + "] % " +
           item.voltage + " V";
       }
