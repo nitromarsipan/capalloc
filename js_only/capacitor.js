@@ -677,15 +677,15 @@ function parseDataSources(i, items, dataSources, last) {
 
 let capacitors = [];
 let dataSources = [
-  new DataSource("data/tdk_flex.capacitor", tdkParser), // 554 pcs
-  new DataSource("data/samsung_flex.capacitor", samsungParser), // 134 pcs
-  new DataSource("data/kemet/c1.html", kemetParser), // 500 pcs
-//  new DataSource("data/kemet/c2.html", kemetParser), // 500 pcs
-//  new DataSource("data/kemet/c3.html", kemetParser), // 500 pcs
-//  new DataSource("data/kemet/c4.html", kemetParser), // 500 pcs
-//  new DataSource("data/kemet/c5.html", kemetParser), // 500 pcs
-//  new DataSource("data/kemet/c6.html", kemetParser), // 500 pcs
-//  new DataSource("data/kemet/csmall_test.html", kemetParser), // 17 pcs
+  new DataSource("../data/tdk_flex.capacitor", tdkParser), // 554 pcs
+  new DataSource("../data/samsung_flex.capacitor", samsungParser), // 134 pcs
+  new DataSource("../data/kemet/c1.html", kemetParser), // 500 pcs
+//  new DataSource("../data/kemet/c2.html", kemetParser), // 500 pcs
+//  new DataSource("../data/kemet/c3.html", kemetParser), // 500 pcs
+//  new DataSource("../data/kemet/c4.html", kemetParser), // 500 pcs
+//  new DataSource("../data/kemet/c5.html", kemetParser), // 500 pcs
+//  new DataSource("../data/kemet/c6.html", kemetParser), // 500 pcs
+//  new DataSource("../data/kemet/csmall_test.html", kemetParser), // 17 pcs
   ];
 parseDataSources(0, capacitors, dataSources, display);
 
