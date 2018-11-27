@@ -1,11 +1,17 @@
 # For collecting part information from documents with part numbers.
 # Copyright 2018 Magnus Sollien Sjursen <m@didakt.no>
 
-from decimal import Decimal
+#from decimal import Decimal
 from functools import reduce
 import re
 import time
+import json
 import sys
+
+#from decimal import Decimal, getcontext
+# Quicker than replacing usage
+def Decimal(x):
+    return float(x)
 
 # Capacitor size codes
 # IEC (JEDEC) | EIA
@@ -591,6 +597,22 @@ data_sources.append(DataSource("data/tdk_flex.capacitor", TdkParser))
 #data_sources.append(DataSource("data/kemet/c6.html", KemetParser)) # ? pcs
 # 17 pcs
 data_sources.append(DataSource("data/kemet/csmall_test.html", KemetParser))
+
+for source in data_sources:
+    capacitors += source.parse_data()
+
+class MyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, TempChar):
+            return obj.__dict__
+        else:
+            return json.JSONEncoder.default(self, obj)
+
+with open("js_only/data.js", "w") as f:
+    s = json.dumps([c.__dict__ for c in capacitors], cls=MyEncoder, indent=4)
+    print("var capacitors = ", file=f, end="")
+    print(s, file=f, end="")
+    print(";", file=f)
 
 start_time = time.time()
 def print_time():
