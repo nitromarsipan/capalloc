@@ -4,6 +4,8 @@
 from decimal import Decimal
 from functools import reduce
 import re
+import time
+import sys
 
 # Capacitor size codes
 # IEC (JEDEC) | EIA
@@ -193,24 +195,24 @@ class TdkParser(CapacitorParser):
 
         # Parameter: Rated voltage
         voltages = {
-        "0J": Decimal(   6.3),
-        "1A": Decimal(  10.0),
-        "1C": Decimal(  16.0),
-        "1E": Decimal(  25.0),
-        "1V": Decimal(  35.0),
-        "1H": Decimal(  50.0),
-        "2A": Decimal( 100.0),
-        "2E": Decimal( 250.0),
-        "2W": Decimal( 450.0),
-        "2J": Decimal( 630.0),
-        "3A": Decimal(1000.0),
-        "3D": Decimal(2000.0),
-        "3F": Decimal(3000.0)}
+        "0J": Decimal(   63)/10,
+        "1A": Decimal(  10),
+        "1C": Decimal(  16),
+        "1E": Decimal(  25),
+        "1V": Decimal(  35),
+        "1H": Decimal(  50),
+        "2A": Decimal( 100),
+        "2E": Decimal( 250),
+        "2W": Decimal( 450),
+        "2J": Decimal( 630),
+        "3A": Decimal(1000),
+        "3D": Decimal(2000),
+        "3F": Decimal(3000)}
         c.voltage = voltages[match[5]]
 
         # Parameter: Nominal capacitance
         e = Decimal(match[7]) - Decimal(12)
-        c.capVal = Decimal(match[6])*(Decimal(10)**e)
+        c.cap = Decimal(match[6])*(Decimal(10)**e)
 
         # Parameter: Capacitance tolerance
         # Consider using python-intervals
@@ -303,7 +305,7 @@ class SamsungParser(CapacitorParser):
   
         # Parameter: Nominal capacitance
         e = Decimal(match[4]) - Decimal(12)
-        c.capVal = Decimal(match[3])*(10**e)
+        c.cap = Decimal(match[3])*(10**e)
 
         # Parameter: Capacitance tolerance
         tols = {
@@ -317,21 +319,21 @@ class SamsungParser(CapacitorParser):
 
         # Parameter: Rated voltage
         voltages = {
-            "R": Decimal(   4.0),
+            "R": Decimal(   4),
             "Q": Decimal(   63)/10,
-            "P": Decimal(  10.0),
-            "O": Decimal(  16.0),
-            "A": Decimal(  25.0),
-            "L": Decimal(  35.0),
-            "B": Decimal(  50.0),
-            "C": Decimal( 100.0),
-            "D": Decimal( 200.0),
-            "E": Decimal( 250.0),
-            "G": Decimal( 500.0),
-            "H": Decimal( 630.0),
-            "I": Decimal(1000.0),
-            "J": Decimal(2000.0),
-            "K": Decimal(3000.0)}
+            "P": Decimal(  10),
+            "O": Decimal(  16),
+            "A": Decimal(  25),
+            "L": Decimal(  35),
+            "B": Decimal(  50),
+            "C": Decimal( 100),
+            "D": Decimal( 200),
+            "E": Decimal( 250),
+            "G": Decimal( 500),
+            "H": Decimal( 630),
+            "I": Decimal(1000),
+            "J": Decimal(2000),
+            "K": Decimal(3000)}
         c.voltage = voltages[match[6]]
   
         # Parameter: Thickness
@@ -464,7 +466,7 @@ class KemetParser(CapacitorParser):
             e = Decimal(-14)
         else:
             e = Decimal(match[4]) - Decimal(12)
-        c.capVal = Decimal(match[3])*(Decimal(10)**e)
+        c.cap = Decimal(match[3])*(Decimal(10)**e)
 
         # Parameter: Capacitance tolerance
         tols = {
@@ -551,23 +553,24 @@ class KemetParser(CapacitorParser):
             "AUTO7411": "13\" reel, paper, auto grade", 
             "AUTO7210": "13\" reel, plastic, auto grade"}
         c.pack = packagings[match[10]]
-  
+
         return c
 
 class DataSource:
     def __init__(self, filename, parser):
         self.filename = filename
         self.parser = parser
-    
+
     def parse_data(self):
         f = open(self.filename, 'r', encoding="utf-8")
         s = f.read()
-        
+
         matches = self.parser.regex.findall(s)
-        
+
         items = []
         for match in matches:
             item = self.parser.parse_match(match)
+            item.source = self.filename
             # Only append new part numbers
             # FIXME: Consider a more efficient algorithm
             if (not item in items):
@@ -575,25 +578,44 @@ class DataSource:
 
         return items
 
-capacitors = []
 data_sources = []
 # 554 pcs
 data_sources.append(DataSource("data/tdk_flex.capacitor", TdkParser))
 # 134 pcs
-data_sources.append(DataSource("data/samsung_flex.capacitor", SamsungParser))
-data_sources.append(DataSource("data/kemet/c1.html", KemetParser)) # 500 pcs
-data_sources.append(DataSource("data/kemet/c2.html", KemetParser)) # 500 pcs
-data_sources.append(DataSource("data/kemet/c3.html", KemetParser)) # 500 pcs
-data_sources.append(DataSource("data/kemet/c4.html", KemetParser)) # 500 pcs
-data_sources.append(DataSource("data/kemet/c5.html", KemetParser)) # 500 pcs
-data_sources.append(DataSource("data/kemet/c6.html", KemetParser)) # ? pcs
+#data_sources.append(DataSource("data/samsung_flex.capacitor", SamsungParser))
+#data_sources.append(DataSource("data/kemet/c1.html", KemetParser)) # 500 pcs
+#data_sources.append(DataSource("data/kemet/c2.html", KemetParser)) # 500 pcs
+#data_sources.append(DataSource("data/kemet/c3.html", KemetParser)) # 500 pcs
+#data_sources.append(DataSource("data/kemet/c4.html", KemetParser)) # 500 pcs
+#data_sources.append(DataSource("data/kemet/c5.html", KemetParser)) # 500 pcs
+#data_sources.append(DataSource("data/kemet/c6.html", KemetParser)) # ? pcs
 # 17 pcs
 data_sources.append(DataSource("data/kemet/csmall_test.html", KemetParser))
 
-for source in data_sources:
-    capacitors += source.parse_data()
+start_time = time.time()
+def print_time():
+    print("[{:.3f}]".format(time.time() - start_time), end="")
 
-for cap in capacitors:
-    print(cap)
+def parse_sources(sources):
+    capacitors = []
+    start_time = time.time();
 
-print(len(capacitors))
+    print("Beginning parsing.")
+    for source in sources:
+        print_time()
+        print(" Parsing {}".format(source.filename), end="")
+        sys.stdout.flush()
+        caps = source.parse_data()
+        print(" {} pcs".format(len(caps)), end="")
+        sys.stdout.flush()
+        capacitors += caps
+        print(" .")
+        sys.stdout.flush()
+
+    print_time()
+    print(" Found {} capacitors.".format(len(capacitors)))
+    
+    return capacitors
+
+if __name__ == "__main__":
+    parse_sources(data_sources)
