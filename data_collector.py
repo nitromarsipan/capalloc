@@ -1,4 +1,4 @@
-# For collecting part information from lists of part numbers.
+# For collecting part information from documents with part numbers.
 # Copyright 2018 Magnus Sollien Sjursen <m@didakt.no>
 
 from decimal import Decimal
@@ -511,7 +511,7 @@ class KemetParser(CapacitorParser):
         c.temp = TempChar(tempchar)
   
         # Parameter: Failure rate / design
-        if (c.design == undefined):
+        if (hasattr(c, "design")):
             if (match[8] == "A"):
                 pass
             elif (match[8] == "1"):
@@ -560,7 +560,7 @@ class DataSource:
         self.parser = parser
     
     def parse_data(self):
-        f = open(self.filename, 'r')
+        f = open(self.filename, 'r', encoding="utf-8")
         s = f.read()
         
         matches = self.parser.regex.findall(s)
@@ -569,28 +569,11 @@ class DataSource:
         for match in matches:
             item = self.parser.parse_match(match)
             # Only append new part numbers
+            # FIXME: Consider a more efficient algorithm
             if (not item in items):
                 items.append(item)
 
         return items
-
-"""
-  # Parse list and display it when done.
-  f.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      s = f.responseText
-
-      match
-      while (match = dataSources[i].parser.regex.exec(s)) {
-        alreadyThere = false
-        for (i in items) {
-          if (items[i].mpn == match[0]) {
-            alreadyThere = true
-          }
-        }
-        if (!alreadyThere) {
-          items.push(dataSources[i].parser.parse(match))
-"""
 
 capacitors = []
 data_sources = []
