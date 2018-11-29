@@ -1,5 +1,7 @@
 # For collecting part information from documents with part numbers.
 # Copyright 2018 Magnus Sollien Sjursen <m@didakt.no>
+#
+# Thanks to Trygve Laugstøl for help with json.
 
 #from decimal import Decimal
 from functools import reduce
@@ -598,6 +600,7 @@ data_sources.append(DataSource("data/tdk_flex.capacitor", TdkParser))
 # 17 pcs
 data_sources.append(DataSource("data/kemet/csmall_test.html", KemetParser))
 
+capacitors = []
 for source in data_sources:
     capacitors += source.parse_data()
 
