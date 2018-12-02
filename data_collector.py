@@ -99,6 +99,7 @@ class TempChar:
                 "P": [Decimal(-10), Decimal(10)],
                 "R": [Decimal(-15), Decimal(15)],
                 # "L": [-15, 15] [-40, 15] above 125°C
+                "L": [Decimal(-40), Decimal(15)],
                 "S": [Decimal(-22), Decimal(22)],
                 "T": [Decimal(-33), Decimal(22)],
                 "U": [Decimal(-56), Decimal(22)],
@@ -117,7 +118,7 @@ class CapacitorParser:
 
 # Parser for TDK MLCC MPNs
 # Group index: 11123455566778911111
-#              00000000000000000012
+#                             00012
 # Example mpn: CGADN3X7R1E476M230LE
 # series       ^^^||||  | |  ||  || CGA
 # size            ^|||  | |  ||  || EIA 3025
@@ -243,7 +244,7 @@ class TdkParser(CapacitorParser):
 
 # Parser for Samsung MLCC MPNs
 # Group index: 112234456789111
-#              000000000000012
+#                          012
 # Example mpn: CL31B106KOHZFNE
 # series       ^^| ||  ||||||| CL
 # size           ^^||  ||||||| EIA 1206 (3216)
@@ -395,7 +396,7 @@ class SamsungParser(CapacitorParser):
 
 # Parser for Kemet MLCC MPNs
 # Group index: 1222234456789111
-#              0000000000000011
+#                           011
 # Example mpn: C1206C106M4RACTU
 # type         ^|   ||  ||||||
 # size          ^^^^||  ||||||
@@ -564,10 +565,241 @@ class KemetParser(CapacitorParser):
 
         return c
 
+# Parser for AVX MLCC MPNs
+# Group index: 11112344567891
+#                           0
+# Example mpn: 04025C104KAT2A
+# size         ^^^^|||  |||||
+# voltage          ^||  |||||
+# dielectric        ^|  |||||
+# capacitance        ^^^|||||
+# tolerance             ^||||
+# failure rate           ^|||
+# termination             ^||
+# packaging                ^|
+# special code              ^
+class AvxParser(CapacitorParser):
+    regex = re.compile(
+        "([0-9]{4})" + \
+        "([1234567YZ])" + \
+        "([ACDFLZ])" + \
+        "([0-9][R0-9][0-9])" + \
+        "([BCDFGJKM])" + \
+        "([4A])" + \
+        "([7TUZ])" + \
+        "([24])" + \
+        "([A])",
+        re.MULTILINE)
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def parse_match(match):
+        c = Capacitor()
+        c.m = "AVX"
+        c.mpn = reduce(lambda x, y: x + y, match)
+        if (match[0] != "0101"):
+            c.size = size_i_to_m[match[0]]
+        else:
+            c.size = size_i_to_m["01005"]
+        
+        # Parameter: Rated voltage
+        voltages = {
+            "1": Decimal("100"),
+            "2": Decimal("200"),
+            "3": Decimal("25"),
+            "4": Decimal("4"),
+            "5": Decimal("50"),
+            "6": Decimal("63")/10,
+            "7": Decimal("500"),
+            "D": Decimal("35"),
+            "Y": Decimal("16"),
+            "Z": Decimal("10")}
+        c.voltage = voltages[match[1]]
+
+        # Parameter: Temperature characteristic
+        temps = {
+            "A": "C0G",
+            "C": "X7R",
+            "D": "X5R",
+            "F": "X8R",
+            "L": "X8L",
+            "Z": "X7S"}
+        
+        tempchar = temps[match[2]]
+        c.temp = TempChar(tempchar)
+
+        # Parameter: Nominal capacitance
+        if (match[3][1] == "R"):
+            c.cap = Decimal(match[3][0] + match[3][2])*Decimal(10)**(-12)
+        else:
+            e = Decimal(match[3][2]) - Decimal(12)
+            c.cap = Decimal(match[3][0:2])*(Decimal(10)**e)
+
+        # Parameter: Capacitance tolerance
+        tols = {
+            # FIXME: calculate tolerances
+            "B": [Decimal(-0), Decimal(0)], # ± 0.10 pF
+            "C": [Decimal(-0), Decimal(0)], # ± 0.25 pF
+            "D": [Decimal(-0), Decimal(0)], # ± 0.50 pF
+            "F": [Decimal(-1), Decimal(1)],
+            "G": [Decimal(-2), Decimal(2)],
+            "J": [Decimal(-5), Decimal(5)],
+            "K": [Decimal(-10), Decimal(10)],
+            "M": [Decimal(-20), Decimal(20)]}
+        c.tol = tols[match[4]]
+  
+        # Parameter: Failure rate / design
+        if (hasattr(c, "design")):
+            if (match[5] == "A"):
+                pass
+            elif (match[5] == "4"):
+                c.auto = "AEC-Q200"
+
+        # Parameter: Termination
+        terms = {
+            "7": "Gold plated",
+            "T": "Plated Ni Sn",
+            "U": "Conductive epoxy",
+            "Z": "Flexiterm Sn"}
+        c.term = terms[match[6]]
+        if (match[6] == "Z"):
+            c.flexterm = "Flexiterm"
+
+        # Parameter: Packaging
+        packagings = {
+            "2": "7\" reel",
+            "4": "13\" reel"}
+        c.pack = packagings[match[7]]
+
+        # Parameter: Special code
+        special_codes = {
+            "A": "Standard"}
+        
+        return c
+
+"""
+# Parser for AVX ESD-rated MLCC MPNs
+# Group index: 11112344567891
+                          # 0
+# Example mpn: ESD35C104K4T2A-18
+# ESD-series   ^^^||||  |||||||
+# size            ^|||  |||||||
+# voltage          ^||  |||||||
+# dielectric        ^|  |||||||
+# capacitance        ^^^|||||||
+# tolerance             ^||||||
+# failure rate           ^|||||
+# terminations            ^||||
+# packaging                ^|||
+# special code              ^||
+# optional dash              ^|
+# ESD-rating (kV)             ^^
+class AvxEsdParser(CapacitorParser):
+    regex = re.compile(
+        "(ESD)" + \
+        "([356])" + \
+        "([1234567YZ])" + \
+        "([CDFLZ])" + \
+        "([0-9]{2})" + \
+        "([0-9])" + \
+        "([JKM])" + \
+        "([4A])" + \
+        "([7TUZ])" + \
+        "([24])" + \
+        "([A])" + \
+        "(-?)" + \
+        "([0-9]{2}",
+        re.MULTILINE)
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def parse_match(match):
+        c = Capacitor()
+        c.m = "AVX"
+        c.mpn = reduce(lambda x, y: x + y, match)
+        
+        # Parameter: ESD-rated
+        # (ignore) match[0]
+        
+        # Parameter: Size
+        sizes = {
+            "3": "0603",
+            "5": "0805",
+            "6": "1206"}
+        c.size = size_i_to_m[sizes(match[1])]
+        
+        # Parameter: Rated voltage
+        voltages = {
+            "1": Decimal("100"),
+            "2": Decimal("200"),
+            "3": Decimal("25"),
+            "4": Decimal("4"),
+            "5": Decimal("50"),
+            "6": Decimal("63")/10,
+            "7": Decimal("500"),
+            "D": Decimal("35"),
+            "Y": Decimal("16"),
+            "Z": Decimal("10")}
+        c.voltage = voltages[match[2]]
+
+        # Parameter: Temperature characteristic
+        temps = {
+            "C": "X7R",
+            "D": "X5R",
+            "F": "X8R",
+            "L": "X8L",
+            "Z": "X7S"}
+        tempchar = temps[match[3]]
+        c.temp = TempChar(tempchar)
+        
+        # Parameter: Nominal capacitance
+        e = Decimal(match[5]) - Decimal(12)
+        c.cap = Decimal(match[4])*(Decimal(10)**e)
+
+        # Parameter: Capacitance tolerance
+        tols = {
+            "J": [Decimal(-5), Decimal(5)],
+            "K": [Decimal(-10), Decimal(10)],
+            "M": [Decimal(-20), Decimal(20)],
+        c.tol = tols[match[5]]
+  
+        # Parameter: Failure rate / design
+        if (hasattr(c, "design")):
+            if (match[6] == "A"):
+                pass
+            elif (match[6] == "4"):
+                c.auto = "AEC-Q200"
+
+        # Parameter: Termination
+        terms = {
+            "7": "Gold plated",
+            "T": "Plated Ni Sn",
+            "U": "Conductive epoxy",
+            "Z": "Flexiterm Sn"}
+        c.term = terms[match[7]]
+
+        # Parameter: Packaging
+        packagings = {
+            "2": "7\" reel",
+            "4": "13\" reel"}
+        c.pack = packagings[match[8]]
+
+        # Parameter: Special code
+        special_codes = {
+            "A": "Standard"}
+        
+        return c
+"""
+
 class DataSource:
-    def __init__(self, filename, parser):
+    def __init__(self, filename, parser, allow_duplicates=False):
         self.filename = filename
         self.parser = parser
+        self.allow_duplicates = allow_duplicates
 
     def parse_data(self):
         f = open(self.filename, 'r', encoding="utf-8")
@@ -581,14 +813,40 @@ class DataSource:
             item.source = self.filename
             # Only append new part numbers
             # FIXME: Consider a more efficient algorithm
-            if (not item in items):
+            if (self.allow_duplicates):
                 items.append(item)
+            else:
+                # The below check grows too quickly
+                if (not item in items):
+                    items.append(item)
 
         return items
 
 data_sources = []
+# Runtime for avx_x7r parse (41824 items) is far higher with
+# allow_duplicates=False : 581 s; =True : 2.4 s
+#data_sources.append(DataSource("data/avx/avx_c0g.capacitor", AvxParser,
+#    allow_duplicates=True))
+# Runtime for avx_x7r parse (10044 items) is far higher with
+# allow_duplicates=False : 34 s; =True : 0.6 s
+#data_sources.append(DataSource("data/avx/avx_x7r.capacitor", AvxParser,
+#    allow_duplicates=True))
+# 84 pcs
+#data_sources.append(DataSource("data/avx/avx_x7s.capacitor", AvxParser,
+#    allow_duplicates=True))
+# 992 pcs
+#data_sources.append(DataSource("data/avx/avx_x5r.capacitor", AvxParser,
+#    allow_duplicates=True))
+# 10188 pcs
+#data_sources.append(DataSource("data/avx/avx_x8r_x8l.capacitor", AvxParser,
+#    allow_duplicates=True))
+# 10572 pcs
+data_sources.append(DataSource("data/avx/avx_flexiterm.capacitor", AvxParser,
+    allow_duplicates=True))
+# AVX ESD parser is not yet implemented
+#data_sources.append(DataSource("data/avx/avx_esd.capacitor", AvxEsdParser))
 # 554 pcs
-data_sources.append(DataSource("data/tdk_flex.capacitor", TdkParser))
+#data_sources.append(DataSource("data/tdk_flex.capacitor", TdkParser))
 # 134 pcs
 #data_sources.append(DataSource("data/samsung_flex.capacitor", SamsungParser))
 #data_sources.append(DataSource("data/kemet/c1.html", KemetParser)) # 500 pcs
@@ -598,7 +856,7 @@ data_sources.append(DataSource("data/tdk_flex.capacitor", TdkParser))
 #data_sources.append(DataSource("data/kemet/c5.html", KemetParser)) # 500 pcs
 #data_sources.append(DataSource("data/kemet/c6.html", KemetParser)) # ? pcs
 # 17 pcs
-data_sources.append(DataSource("data/kemet/csmall_test.html", KemetParser))
+#data_sources.append(DataSource("data/kemet/csmall_test.html", KemetParser))
 
 capacitors = []
 for source in data_sources:
