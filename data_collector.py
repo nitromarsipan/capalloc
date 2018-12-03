@@ -3,7 +3,9 @@
 #
 # Thanks to Trygve Laugstøl for help with json.
 
-#from decimal import Decimal
+import decimal
+from decimal import Decimal
+import math
 from functools import reduce
 import re
 import time
@@ -12,8 +14,8 @@ import sys
 
 #from decimal import Decimal, getcontext
 # Quicker than replacing usage
-def Decimal(x):
-    return float(x)
+#def Decimal(x):
+#    return float(x)
 
 # Capacitor size codes
 # IEC (JEDEC) | EIA
@@ -811,12 +813,12 @@ class DataSource:
         for match in matches:
             item = self.parser.parse_match(match)
             item.source = self.filename
-            # Only append new part numbers
-            # FIXME: Consider a more efficient algorithm
             if (self.allow_duplicates):
                 items.append(item)
             else:
-                # The below check grows too quickly
+                # Only append new part numbers
+                # FIXME: Consider a more efficient algorithm
+                # Consider sortedcontainers.SortedDict .
                 if (not item in items):
                     items.append(item)
 
@@ -866,6 +868,13 @@ class MyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, TempChar):
             return obj.__dict__
+        if isinstance(obj, Decimal):
+            # Javascript does not handle small numbers exactly.
+            # Store numbers as mantissa and exponent (larger than
+            # the standard javascript floats provides).
+            e = int(math.floor(math.log10(abs(float(obj))))) - 3
+            c = Decimal(10)**e
+            return [int(obj/c), e]
         else:
             return json.JSONEncoder.default(self, obj)
 
